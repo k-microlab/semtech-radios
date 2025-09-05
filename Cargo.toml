@@ -18,8 +18,9 @@ exclude = [".gitignore"]
 [dependencies]
 defmt = "1.0.1"
 
-hal = { package = "stm32-hal2", version = "2.1.0", optional = true }
+hal = { package = "stm32-hal2", version = "2.1.4", optional = true }
 
 [features]
-g4 = ["hal/g431"]
+g474 = ["hal/g474"]
+g431 = ["hal/g431"]
 wl = ["hal/wle5"]

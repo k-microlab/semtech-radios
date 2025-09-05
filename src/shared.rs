@@ -2,6 +2,12 @@ use hal::gpio::Pin;
 
 use crate::{CommandStatus, OperatingModeRead};
 
+// todo: Experimenting
+pub trait RadioPins2 {
+    fn is_busy(&self) -> bool;
+    fn reset(&mut self);
+}
+
 #[derive(Clone)]
 pub struct RadioPins {
     pub cs: Pin,

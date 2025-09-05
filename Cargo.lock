@@ -218,7 +218,7 @@ dependencies = [
 
 [[package]]
 name = "semtech_radios"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "defmt",
  "stm32-hal2",
@@ -241,7 +241,9 @@ checksum = "388a1df253eca08550bef6c72392cfe7c30914bf41df5269b68cbd6ff8f570a3"
 
 [[package]]
 name = "stm32-hal2"
-version = "2.0.0"
+version = "2.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "24a6bab709c0a7706b5b65a1a144022e2f12e782e254e59544f4fc1d93901f9b"
 dependencies = [
  "cfg-if",
  "cfg_aliases",
