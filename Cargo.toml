@@ -1,6 +1,6 @@
 [package]
 name = "semtech_radios"
-version = "0.1.4"
+version = "0.1.5"
 edition = "2024"
 authors = ["David O'Connor <the_alchemist@fastmail.com>"]
 description = "Support for Semtech SX126x and SX128x LoRa radios"
@@ -8,7 +8,7 @@ keywords = ["lora", "embedded", "semtech", "sx126x", "sx128x"]
 categories = [
     "no-std",
 ]
-repository = "https://github.com/David-OConnor/semtech-readios"
+repository = "https://github.com/David-OConnor/semtech-radios"
 documentation = "https://docs.rs/semtech_radios"
 readme = "README.md"
 license = "MIT"
