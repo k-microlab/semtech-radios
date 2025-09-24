@@ -124,9 +124,9 @@ pub(crate) fn status_from_byte(
         5 => OperatingModeRead::Rx,
         6 => OperatingModeRead::Tx,
         1 => {
-            println!(
-                "1 returned for operating mode. Investigate (\"RFU\" in DS; the future is now.)"
-            );
+            // println!(
+            //     "1 returned for operating mode. Investigate (\"RFU\" in DS; the future is now.)"
+            // );
             OperatingModeRead::Fs // bogus
         }
         _ => return Err(UnexpectedStatus(om)),
@@ -135,9 +135,9 @@ pub(crate) fn status_from_byte(
     let command_status = match c_s {
         1 => {
             if !r8x {
-                println!(
-                    "1 returned for command status. Investigate (\"RFU\" in DS; the future is now.)"
-                );
+                // println!(
+                //     "1 returned for command status. Investigate (\"RFU\" in DS; the future is now.)"
+                // );
                 CommandStatus::FailureToExecuteCommand // bogus
             // todo: This should be removed in favof of unexpected status.
             } else {
