@@ -21,6 +21,7 @@ defmt = "1.0.1"
 hal = { package = "stm32-hal2", version = "2.1.4", optional = true }
 
 [features]
+f411 = ["hal/f411"]
 g474 = ["hal/g474"]
 g431 = ["hal/g431"]
 wl = ["hal/wle5"]
