@@ -1,12 +1,6 @@
 //! SPI interface commands for the radio.
 
 use defmt::println;
-use hal::{
-    delay_us,
-    dma::{ChannelCfg, DmaChannel, DmaPeriph},
-    pac::{SPI1, SPI2},
-    spi::Spi,
-};
 
 use crate::{
     shared,
@@ -14,9 +8,6 @@ use crate::{
     status,
 };
 
-// todo: Don't hard-code!
-// pub type Spi_ = Spi<SPI1>;
-pub type Spi_ = Spi<SPI2>;
 
 // Note: Should be 256.
 // pub const RADIO_BUF_SIZE: usize = 256;
@@ -26,16 +17,11 @@ pub const RADIO_BUF_SIZE: usize = 256 + 3; // For the 3 header bytes?
 // // todo: - 3 for opcode, start buffer pointer, and the third byte?
 // pub const MAX_OTA_PAYLOAD: usize = RADIO_BUF_SIZE - 3;
 
-const AHB_FREQ: u32 = 170_000_000; // todo: temp hard-coded
-const DMA_PERIPH: DmaPeriph = DmaPeriph::Dma1; // todo: temp hard-coded
-
 use crate::shared::{RadioPins, Register};
 
-pub struct Interface {
-    pub spi: Spi_,
-    pub pins: RadioPins,
-    pub tx_ch: DmaChannel,
-    pub rx_ch: DmaChannel,
+pub struct Interface<SPI, CS, BUSY, RESET> {
+    pub spi: SPI,
+    pub pins: RadioPins<CS, BUSY, RESET>,
     pub read_buf: [u8; RADIO_BUF_SIZE],
     pub write_buf: [u8; RADIO_BUF_SIZE],
     pub rx_payload_len: u8,
@@ -44,11 +30,17 @@ pub struct Interface {
     pub r8x: bool,
 }
 
-impl Interface {
-    pub fn reset(&mut self) {
+impl<SPI, CS, BUSY, RST> Interface<SPI, CS, BUSY, RST>
+where
+    SPI: embedded_hal::spi::SpiDevice,
+    CS: embedded_hal::digital::OutputPin,
+    BUSY: embedded_hal::digital::InputPin,
+    RST: embedded_hal::digital::OutputPin,
+{
+    pub fn reset<DELAY: embedded_hal::delay::DelayNs>(&mut self, delay: &mut DELAY) {
         // Should only need 100us.
         self.pins.reset.set_low();
-        delay_us(500, AHB_FREQ);
+        delay.delay_ms(500);
         self.pins.reset.set_high();
     }
 
@@ -57,7 +49,7 @@ impl Interface {
     pub fn wait_on_busy(&mut self) -> Result<(), RadioError> {
         let mut i = 0;
 
-        while self.pins.busy.is_high() {
+        while self.pins.busy.is_high().unwrap() {
             i += 1;
             if i >= MAX_ITERS {
                 println!("Exceeded max iters on wait on busy.");
@@ -81,7 +73,7 @@ impl Interface {
         // }
 
         let mut buf = [c, word];
-        if self.spi.transfer(&mut buf).is_err() {
+        if self.spi.transfer(&mut buf, &[c, word]).is_err() {
             self.pins.cs.set_high();
             return Err(RadioError::Spi);
         }
@@ -102,7 +94,7 @@ impl Interface {
         self.wait_on_busy()?;
 
         self.pins.cs.set_low();
-        if self.spi.transfer(&mut buf).is_err() {
+        if self.spi.transfer(&mut buf, &[]).is_err() {
             self.pins.cs.set_high();
             return Err(RadioError::Spi);
         };
@@ -165,7 +157,7 @@ impl Interface {
         self.pins.cs.set_low();
         if self
             .spi
-            .transfer_type2(&[c, addr_split.0, addr_split.1, 0, 0, 0], &mut read_buf)
+            .transfer(&mut read_buf, &[c, addr_split.0, addr_split.1, 0, 0, 0])
             .is_err()
         {
             self.pins.cs.set_high();
@@ -219,14 +211,9 @@ impl Interface {
         self.wait_on_busy()?;
 
         println!("Writing DMA..."); // todo: Temp
-        self.pins.cs.set_low();
-        unsafe {
-            self.spi.write_dma(
-                &self.write_buf[..2 + payload.len()],
-                self.tx_ch,
-                Default::default(),
-                DMA_PERIPH,
-            );
+        self.pins.cs.set_low().unwrap();
+        if self.spi.write(&self.write_buf[..2 + payload.len()]).is_err() {
+            return Err(RadioError::Spi);
         }
 
         Ok(())
@@ -254,17 +241,12 @@ impl Interface {
         self.wait_on_busy()?;
 
         println!("Reading DMA..."); // todo: temp
-        self.pins.cs.set_low();
-        unsafe {
-            self.spi.transfer_dma(
-                &self.write_buf[0..buf_end],
-                &mut self.read_buf[0..buf_end],
-                self.tx_ch,
-                self.rx_ch,
-                ChannelCfg::default(),
-                ChannelCfg::default(),
-                DMA_PERIPH,
-            );
+        self.pins.cs.set_low().unwrap();
+        if self.spi.transfer(
+            &mut self.read_buf[0..buf_end],
+            &self.write_buf[0..buf_end],
+        ).is_err() {
+            return Err(RadioError::Spi);
         }
 
         Ok(())
@@ -275,7 +257,7 @@ impl Interface {
         self.wait_on_busy()?;
 
         self.pins.cs.set_low();
-        if self.spi.transfer(buffer).is_err() {
+        if self.spi.read(buffer).is_err() {
             self.pins.cs.set_high();
             return Err(RadioError::Spi);
         }

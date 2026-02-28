@@ -6,7 +6,13 @@ use crate::{
     shared::{RadioError, Register, Register6x},
 };
 
-impl Radio {
+impl<SPI, CS, BUSY, RST> Radio<SPI, CS, BUSY, RST>
+where
+    SPI: embedded_hal::spi::SpiDevice,
+    CS: embedded_hal::digital::OutputPin,
+    BUSY: embedded_hal::digital::InputPin,
+    RST: embedded_hal::digital::OutputPin,
+{
     /// (6x only) See DS, section 9.6: Receive (RX) Mode).
     pub fn set_rxgain_retention(&mut self) -> Result<(), RadioError> {
         self.interface

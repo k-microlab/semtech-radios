@@ -1,14 +1,18 @@
 //! Contains code related to assessing status of the radio and operations.
 
-use defmt::println;
-
 use crate::{
     CommandStatus, OperatingModeRead, Radio, RadioConfig, RxBufferStatus, RxPacketStatusLora,
     RxStatistics6x,
     shared::{OpCode, RadioError, RadioError::UnexpectedStatus},
 };
 
-impl Radio {
+impl<SPI, CS, BUSY, RST> Radio<SPI, CS, BUSY, RST>
+where
+    SPI: embedded_hal::spi::SpiDevice,
+    CS: embedded_hal::digital::OutputPin,
+    BUSY: embedded_hal::digital::InputPin,
+    RST: embedded_hal::digital::OutputPin,
+{
     /// 6x only. DS, section 13.5.5
     /// todo: Impl reset as well.
     pub fn get_statistics(&mut self) -> Result<RxStatistics6x, RadioError> {

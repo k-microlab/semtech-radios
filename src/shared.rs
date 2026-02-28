@@ -1,5 +1,3 @@
-use hal::gpio::Pin;
-
 use crate::{CommandStatus, OperatingModeRead};
 
 // todo: Experimenting
@@ -9,10 +7,10 @@ pub trait RadioPins2 {
 }
 
 #[derive(Clone)]
-pub struct RadioPins {
-    pub cs: Pin,
-    pub busy: Pin,
-    pub reset: Pin,
+pub struct RadioPins<CS, BUSY, RST> {
+    pub cs: CS,
+    pub busy: BUSY,
+    pub reset: RST,
 }
 
 /// Split a u16 address into two bytes.

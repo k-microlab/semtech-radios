@@ -21,7 +21,13 @@ const F_XTAL_8X: f32 = 52_000_000.;
 const FREQ_CONST_6X: f32 = F_XTAL_6X / (1 << 25) as f32;
 const FREQ_CONST_8X: f32 = F_XTAL_8X / (1 << 18) as f32;
 
-impl Radio {
+impl<SPI, CS, BUSY, RST> Radio<SPI, CS, BUSY, RST>
+where
+    SPI: embedded_hal::spi::SpiDevice,
+    CS: embedded_hal::digital::OutputPin,
+    BUSY: embedded_hal::digital::InputPin,
+    RST: embedded_hal::digital::OutputPin,
+{
     /// 6x: See DS, section 13.4.1 for this computation.
     /// 8x: See DS, section 11.7.3.
     pub(crate) fn set_rf_freq(&mut self) -> Result<(), RadioError> {

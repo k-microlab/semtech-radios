@@ -10,13 +10,12 @@ pub mod spi_interface;
 mod status;
 
 use defmt::{Format, println};
-use hal::dma::DmaChannel;
 
 // todo: Calibration on 8x?
 use crate::{
     params::{ModulationParams8x, ModulationParamsLora6x, PacketParams, PacketParamsLora},
     shared::{OpCode, RadioError, RadioPins, Register, Register::Reg8x, Register6x, Register8x},
-    spi_interface::{Interface, RADIO_BUF_SIZE, Spi_},
+    spi_interface::{Interface, RADIO_BUF_SIZE},
 };
 
 // Error in the datasheet?
@@ -360,26 +359,29 @@ pub enum RadioConfig {
     R8x(RadioConfig8x),
 }
 
-pub struct Radio {
-    pub interface: Interface,
+pub struct Radio<SPI, CS, BUSY, RST> {
+    pub interface: Interface<SPI, CS, BUSY, RST>,
     pub config: RadioConfig,
 }
 
-impl Radio {
+impl<SPI, CS, BUSY, RST> Radio<SPI, CS, BUSY, RST>
+where
+    SPI: embedded_hal::spi::SpiDevice,
+    CS: embedded_hal::digital::OutputPin,
+    BUSY: embedded_hal::digital::InputPin,
+    RST: embedded_hal::digital::OutputPin,
+{
     /// Initialize the radio. See DS section 14.5: Issuing Commands in the Right Order.
     ///
     /// Most of the commands can be sent in any order except for the radio configuration commands which will set the radio in
     /// the proper operating mode.
     /// ... (See inline comments prior to the mandatory order of the first 3 steps)
     /// If this order is not respected, the behavior of the device could be unexpected.
-    pub fn new(
+    pub fn new<DELAY: embedded_hal::delay::DelayNs>(
         config: RadioConfig,
-        spi: Spi_,
-        pins: RadioPins,
-        tx_ch: DmaChannel,
-        rx_ch: DmaChannel,
-        // set_cs_low: impl FnMut(&mut T), // todo testin
-        // set_cs_low: impl FnMut(), // todo testin
+        spi: SPI,
+        pins: RadioPins<CS, BUSY, RST>,
+        delay: &mut DELAY
     ) -> Result<Self, RadioError> {
         let tx_addr = 0;
         let rx_addr = 0;
@@ -391,8 +393,6 @@ impl Radio {
             interface: Interface {
                 spi,
                 pins,
-                tx_ch,
-                rx_ch,
                 read_buf: [0; RADIO_BUF_SIZE],
                 write_buf: [0; RADIO_BUF_SIZE],
                 rx_payload_len: 0,
@@ -411,7 +411,7 @@ impl Radio {
             }
         } else {
             // Removed on 8x, due to using multiple radios on Meerkat.
-            result.interface.reset();
+            result.interface.reset(delay);
         }
 
         // DS, section 9.1:
